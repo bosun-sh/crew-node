@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "endpoints": [
+    { "owner": "dashboard", "method": "POST", "path": "/api/node/bootstrap" },
+    { "owner": "dashboard", "method": "POST", "path": "/api/node/heartbeat" },
+    { "owner": "runner", "method": "POST", "path": "/v1/node/register" },
+    { "owner": "runner", "method": "POST", "path": "/v1/node/heartbeat" },
+    { "owner": "runner", "method": "GET", "path": "/v1/node/jobs/next" },
+    { "owner": "runner", "method": "POST", "path": "/v1/node/jobs/{jobId}/result" }
+  ],
+  "tools": [
+    "list-repo-files",
+    "read-repo-file",
+    "read-file-range",
+    "outline-file",
+    "search-repo",
+    "write-repo-file",
+    "delete-repo-file",
+    "run-command",
+    "git-diff",
+    "git-status",
+    "prepare-workspace",
+    "finalize-workspace",
+    "read-cumulative-diff",
+    "collect-safety-findings"
+  ],
+  "toolContracts": {
+    "list-repo-files": { "input": { "maxFiles": 500 }, "output": "string[]" },
+    "read-repo-file": { "input": { "path": "README.md", "maxBytes": 65536 }, "outputKeys": ["path", "content", "truncated"] },
+    "read-file-range": { "input": { "path": "README.md", "startLine": 1, "endLine": 20, "maxBytes": 65536 }, "outputKeys": ["path", "content", "startLine", "endLine", "totalLines"] },
+    "outline-file": { "input": { "path": "README.md", "maxBytes": 65536 }, "outputKeys": ["path", "outline", "totalLines"] },
+    "search-repo": { "input": { "query": "Crew" }, "outputKeys": ["matches", "exitCode"] },
+    "write-repo-file": { "input": { "path": "empty.txt", "content": "" }, "outputKeys": ["kind", "path", "bytesWritten", "existedBefore"] },
+    "delete-repo-file": { "input": { "path": "empty.txt" }, "outputKeys": ["kind", "path", "existedBefore"] },
+    "run-command": { "input": { "argv": ["git", "status", "--short"], "reason": "verify" }, "outputKeys": ["argv", "cwd", "exitCode", "stdout", "stderr", "allowed", "durationMs", "stdoutTruncated", "stderrTruncated", "timedOut", "startedAt", "finishedAt"] },
+    "git-diff": { "input": { "baseRef": "HEAD", "nameOnly": false }, "outputKeys": ["diff", "exitCode"] },
+    "git-status": { "input": { "porcelain": true }, "outputKeys": ["status", "exitCode"] },
+    "prepare-workspace": { "input": { "runId": "contract-run", "allowDirty": false }, "outputKeys": ["workspace", "warnings"] },
+    "finalize-workspace": { "input": { "outcome": "complete", "goal": "contract", "runId": "contract-run", "restoreBaseBranch": false }, "outputKeys": ["committed"] },
+    "read-cumulative-diff": { "input": { "baseRef": "HEAD" }, "outputKeys": ["diff"] },
+    "collect-safety-findings": { "input": { "baseRef": "HEAD", "allowedChangeGlobs": ["src/**"] }, "outputKeys": ["changedFiles", "findings"] }
+  }
+}

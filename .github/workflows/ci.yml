@@ -1,0 +1,54 @@
+name: Node CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: node-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2.1.2
+        with:
+          bun-version: 1.3.9
+      - uses: actions/cache@v4.2.4
+        with:
+          path: ~/.bun/install/cache
+          key: node-bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: node-bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun audit
+      - run: npm pack --dry-run
+      - run: CREW_NODE_API_KEY=test docker compose -f docker-compose.example.yml config
+      - run: docker build --tag crew-node:ci .
+      - name: Smoke-test container
+        run: |
+          docker run -d --name crew-node-ci \
+            -e CREW_NODE_API_KEY="crew_node_key_v2.aHR0cDovLzEyNy4wLjAuMTozMDAw.AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE" \
+            -e CREW_WORKSPACE_ROOT=/workspace \
+            -e CREW_AUDIT_DIR=/data/audit \
+            -e CREW_STATE_DIR=/data/state \
+            -v "$PWD:/workspace" \
+            -v crew-node-ci-data:/data \
+            crew-node:ci
+          # The image's built-in HEALTHCHECK gates on /readyz, which requires a live
+          # control-plane session; this smoke test's fake dashboard key can never establish
+          # one. Probe /healthz instead: it only proves the process started and is listening.
+          for attempt in $(seq 1 20); do
+            if docker exec crew-node-ci node -e 'fetch("http://127.0.0.1:" + (process.env.CREW_PORT || "4321") + "/healthz").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs crew-node-ci
+          exit 1

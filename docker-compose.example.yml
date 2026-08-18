@@ -1,0 +1,32 @@
+services:
+  # Paid-beta customer install. Node connects outbound; publish no port.
+  crew-node:
+    build: .
+    image: crew-node:local
+    environment:
+      CREW_NODE_API_KEY: "${CREW_NODE_API_KEY:?set CREW_NODE_API_KEY}"
+      CREW_WORKSPACE_ROOT: /workspace
+      CREW_ALLOWED_COMMANDS: "git,npm,node,sed,cat,ls,find,patch"
+      CREW_COMMAND_TIMEOUT_SECONDS: "120"
+      CREW_OUTPUT_MAX_BYTES: "80000"
+      CREW_AUDIT_DIR: /data/audit
+      CREW_STATE_DIR: /data/state
+      # npm needs a writable HOME/cache under the 64m tmpfs below; the workspace bind mount and
+      # /data volume stay read-only otherwise.
+      HOME: /tmp/crew
+      NPM_CONFIG_CACHE: /tmp/crew/.npm
+    volumes:
+      - type: bind
+        source: ./workspace
+        target: /workspace
+      - crew-node-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  crew-node-data:

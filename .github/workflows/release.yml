@@ -1,0 +1,92 @@
+name: Release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+  packages: write
+  attestations: write
+  id-token: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2.1.2
+        with:
+          bun-version: 1.3.9
+      - run: |
+          version=$(node -p "require('./package.json').version")
+          test "${GITHUB_REF_NAME#v}" = "$version"
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun audit
+      - run: npm pack --dry-run
+      - run: CREW_NODE_API_KEY=test docker compose -f docker-compose.example.yml config
+      - run: docker build --tag crew-node:release-check .
+      - name: Smoke-test release image
+        run: |
+          docker run -d --name crew-node-release-check \
+            -e CREW_NODE_API_KEY="crew_node_key_v2.aHR0cDovLzEyNy4wLjAuMTozMDAw.AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE" \
+            -e CREW_WORKSPACE_ROOT=/workspace \
+            -e CREW_AUDIT_DIR=/data/audit \
+            -e CREW_STATE_DIR=/data/state \
+            -v "$PWD:/workspace" \
+            -v crew-node-release-data:/data \
+            crew-node:release-check
+          # The fake control-plane key cannot make /readyz succeed. This smoke
+          # proves the tagged process starts; live qualification owns readiness.
+          for attempt in $(seq 1 20); do
+            if docker exec crew-node-release-check node -e 'fetch("http://127.0.0.1:" + (process.env.CREW_PORT || "4321") + "/healthz").then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs crew-node-release-check
+          exit 1
+  image:
+    needs: verify
+    runs-on: ubuntu-24.04
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: metadata
+        with:
+          images: ghcr.io/bosun-sh/crew-node
+          flavor: latest=false
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha
+      - uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          provenance: mode=max
+          sbom: true
+      - uses: actions/attest@v4
+        with:
+          subject-name: ghcr.io/bosun-sh/crew-node
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+  release:
+    needs: image
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - run: gh release create "$GITHUB_REF_NAME" --verify-tag --prerelease --generate-notes --notes "Container: ghcr.io/bosun-sh/crew-node@$IMAGE_DIGEST"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          IMAGE_DIGEST: ${{ needs.image.outputs.digest }}

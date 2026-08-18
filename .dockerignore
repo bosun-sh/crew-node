@@ -1,0 +1,8 @@
+node_modules
+.git
+.crew-audit
+coverage
+dist
+*.log
+.env
+.DS_Store

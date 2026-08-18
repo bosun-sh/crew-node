@@ -1,0 +1,14 @@
+title = "Crew Node gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic secrets used only in tests and CI fixtures, not real credentials"
+regexes = [
+  '''sk-secretsecretsecretsecret''',
+  '''sk-abcdefghijklmnopqrstuvwx''',
+  '''ghp_abcdefghijklmnopqrstuvwx012345''',
+  '''crew_node_key_v2\.aHR0cDovLzEyNy4wLjAuMTozMDAw\.AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE''',
+  '''abcdef123456''',
+]

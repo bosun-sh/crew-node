@@ -1,0 +1,35 @@
+{
+  "name": "crew-node",
+  "version": "0.2.0-beta.1",
+  "description": "Customer-side executor for the Crew ecosystem.",
+  "private": true,
+  "packageManager": "bun@1.3.9",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bosun-sh/crew-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bosun-sh/crew-node/issues"
+  },
+  "homepage": "https://github.com/bosun-sh/crew-node#readme",
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "dev": "bun run src/server.ts",
+    "start": "node dist/server.js",
+    "prepack": "bun run build",
+    "check": "bun run quality && bun run typecheck && bun test && bun run build",
+    "quality": "bun run scripts/check-quality.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "bun-types": "^1.3.0",
+    "typescript": "^5.9.0"
+  }
+}
