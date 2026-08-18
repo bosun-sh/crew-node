@@ -8,7 +8,7 @@ COPY tsconfig.json tsconfig.build.json ./
 RUN bun run build
 
 # node:24-alpine
-FROM node@sha256:d32cdf619f63fe0471182d08996dd516c6275bb5fd31ae06e55a570bd9e1ad43 AS runtime
+FROM node@sha256:bde0dae02f2b12d2bce5ee72b2432f0e511767b7b2dc4dd3b064df11ae422fee AS runtime
 LABEL org.opencontainers.image.source="https://github.com/bosun-sh/crew-node" \
       org.opencontainers.image.description="Customer-installed execution boundary for Crew Cloud" \
       org.opencontainers.image.licenses="MIT"
