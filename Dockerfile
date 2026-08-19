@@ -12,14 +12,19 @@ FROM node@sha256:bde0dae02f2b12d2bce5ee72b2432f0e511767b7b2dc4dd3b064df11ae422fe
 LABEL org.opencontainers.image.source="https://github.com/bosun-sh/crew-node" \
       org.opencontainers.image.description="Customer-installed execution boundary for Crew Cloud" \
       org.opencontainers.image.licenses="MIT"
-RUN apk add --no-cache git patch tini
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git patch tini \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
 COPY package.json ./
-RUN addgroup -S crew && adduser -S crew -G crew && mkdir -p /workspace /data/audit /data/state && chown -R crew:crew /workspace /data
+RUN groupadd --system crew \
+    && useradd --system --gid crew --no-create-home crew \
+    && mkdir -p /workspace /data/audit /data/state \
+    && chown -R crew:crew /workspace /data
 USER crew
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD node -e 'const port=process.env.CREW_PORT||"4321"; fetch(`http://127.0.0.1:${port}/readyz`).then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))'
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["node", "dist/server.js"]
