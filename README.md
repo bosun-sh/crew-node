@@ -38,6 +38,10 @@ Do not publish container port 4321. After Node appears in Dashboard, explicitly 
 
 The equivalent hardened Compose example is in [`docker-compose.example.yml`](docker-compose.example.yml).
 
+For Dokploy, build the repository's root `Dockerfile` as an Application and
+follow [`docs/dokploy.md`](docs/dokploy.md) for environment variables, mounts,
+and the Todo smoke test.
+
 ## Configuration
 
 `CREW_NODE_API_KEY` is required and contains the Dashboard URL plus random bearer material. Optional controls:
