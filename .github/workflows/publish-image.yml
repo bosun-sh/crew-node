@@ -41,4 +41,5 @@ jobs:
         with:
           subject-name: ghcr.io/bosun-sh/crew-node
           subject-digest: ${{ steps.build.outputs.digest }}
+          predicate-type: https://slsa.dev/provenance/v1
           push-to-registry: true
