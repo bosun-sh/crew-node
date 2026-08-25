@@ -2,7 +2,7 @@ name: Publish image
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
         with:
           images: ghcr.io/bosun-sh/crew-node
           flavor: latest=false
-          tags: type=semver,pattern={{version}}
+          tags: type=raw,value=0.2.0-beta.1
       - uses: docker/build-push-action@v6
         id: build
         with:
