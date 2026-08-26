@@ -7,8 +7,6 @@ on:
 permissions:
   contents: read
   packages: write
-  attestations: write
-  id-token: write
 
 jobs:
   image:
@@ -37,9 +35,3 @@ jobs:
           labels: ${{ steps.metadata.outputs.labels }}
           provenance: mode=max
           sbom: true
-      - uses: actions/attest@v2
-        with:
-          subject-name: ghcr.io/bosun-sh/crew-node
-          subject-digest: ${{ steps.build.outputs.digest }}
-          predicate-type: https://slsa.dev/provenance/v1
-          push-to-registry: true
